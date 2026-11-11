@@ -46,10 +46,11 @@ try {
     }
 
     Set-UpgradeStatus 'installing' 'Closing only verified Argus application instances.'
-    $runtimePrefix = (Join-Path $env:ProgramFiles 'Argus Runtime\dev.argus.taskmanager\')
+    $runtimePrefix = (Join-Path $env:ProgramFiles "Argus Runtime\dev.argus.taskmanager\$ExpectedUserSid\")
+    $desktopSession = (Get-Process -Id $PID).SessionId
     foreach ($process in (Get-CimInstance Win32_Process -Filter "Name LIKE 'argus%'")) {
         $path = [string]$process.ExecutablePath
-        if ($path -and ($path.Equals($installed, [StringComparison]::OrdinalIgnoreCase) -or $path.StartsWith($runtimePrefix, [StringComparison]::OrdinalIgnoreCase))) {
+        if ($process.SessionId -eq $desktopSession -and $path -and ($path.Equals($installed, [StringComparison]::OrdinalIgnoreCase) -or $path.StartsWith($runtimePrefix, [StringComparison]::OrdinalIgnoreCase))) {
             Stop-Process -Id $process.ProcessId -Force
         }
     }
