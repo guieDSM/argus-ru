@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: personal-ru
@@ -34,6 +34,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           rustup default stable-x86_64-pc-windows-msvc
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          cache-on-failure: true
       - name: Check translation catalogs and generated adapters
         run: |
           node scripts/i18n.mjs
@@ -48,14 +50,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cargo build --release --locked -p argus-window-probe --features capture
           exit $LASTEXITCODE
-      - name: Check Russian interface in an isolated profile
-        run: node scripts/ui-shots.mjs personal-ru tools/window-probe/steps/localization.json --release --language ru-RU
       - name: Collect application and source information
         run: |
           New-Item -ItemType Directory -Path delivery | Out-Null
           Copy-Item target/release/argus.exe delivery/Argus-RU.exe
           Copy-Item target/release/argus-window-probe.exe delivery/argus-window-probe.exe
-          Copy-Item personal/install.ps1, personal/README.ru.md, LICENSE -Destination delivery
+          Copy-Item personal/install.ps1, personal/README.ru.md, LICENSE, THIRD-PARTY-NOTICES.txt -Destination delivery
           @{
             repository = '${{ github.repository }}'
             commit = '${{ github.sha }}'
@@ -66,16 +66,39 @@ jobs:
           Get-FileHash delivery/Argus-RU.exe -Algorithm SHA256 |
             ForEach-Object { "$($_.Hash.ToLowerInvariant())  Argus-RU.exe" } |
             Set-Content delivery/SHA256SUMS.txt -Encoding ascii
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: Argus-RU-Windows-x64
-          path: delivery/
-          if-no-files-found: error
-          retention-days: 30
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - name: Save application in a private draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          Compress-Archive -Path delivery/* -DestinationPath Argus-RU-Windows-x64.zip
+          gh release create personal-ru-${{ github.run_number }} Argus-RU-Windows-x64.zip --draft --target '${{ github.sha }}' --title 'Argus RU personal build ${{ github.run_number }}' --notes-file personal/README.ru.md
+          exit $LASTEXITCODE
+      - name: Check Russian interface in an isolated profile
+        run: |
+          # Hosted Windows runners can create the app window but do not support
+          # Windows.Graphics.Capture. Inspect real layout and dialogs instead.
+          $plan = Get-Content tools/window-probe/steps/localization.json -Raw | ConvertFrom-Json
+          $index = 0
+          foreach ($step in $plan.steps) {
+            $index++
+            $step.PSObject.Properties.Remove('capture')
+            if (-not $step.inspect) {
+              $step | Add-Member -NotePropertyName inspect -NotePropertyValue layout
+              $step | Add-Member -NotePropertyName label -NotePropertyValue "page-$index"
+              if ($step.control.page) {
+                $step | Add-Member -NotePropertyName expect -NotePropertyValue @{page=$step.control.page}
+              }
+            }
+          }
+          $plan | ConvertTo-Json -Depth 50 | Set-Content target/personal-ui-ci.json -Encoding utf8
+          node scripts/ui-shots.mjs personal-ru target/personal-ui-ci.json --release --language ru-RU
+          exit $LASTEXITCODE
+      - name: Save interface check results
         if: always()
-        with:
-          name: Russian-interface-check
-          path: target/native-validation/personal-ru/
-          if-no-files-found: ignore
-          retention-days: 14
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if (Test-Path target/native-validation/personal-ru/results.json) {
+            gh release upload personal-ru-${{ github.run_number }} target/native-validation/personal-ru/results.json --clobber
+            exit $LASTEXITCODE
+          }

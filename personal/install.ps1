@@ -32,7 +32,7 @@ if (Test-Path -LiteralPath $destinationExecutable) {
     Copy-Item -LiteralPath $destinationExecutable -Destination (Join-Path $backupDirectory 'argus.exe')
 }
 Copy-Item -LiteralPath $sourceExecutable -Destination $destinationExecutable -Force
-foreach ($name in @('build-info.json','LICENSE','README.ru.md','SHA256SUMS.txt')) {
+foreach ($name in @('build-info.json','LICENSE','THIRD-PARTY-NOTICES.txt','README.ru.md','SHA256SUMS.txt')) {
     $source = Join-Path $SourceDirectory $name
     if (Test-Path -LiteralPath $source) { Copy-Item -LiteralPath $source -Destination $InstallDirectory -Force }
 }
