@@ -3,7 +3,7 @@ param()
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
-$source = Join-Path $root 'target\delivery-ru-2\unpacked'
+$source = if (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'Argus-RU.exe')) { $PSScriptRoot } else { Join-Path $root 'target\delivery-ru-2\unpacked' }
 $helper = Join-Path $PSScriptRoot 'upgrade-installed.ps1'
 $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 $stateDirectory = Join-Path $env:LOCALAPPDATA 'Programs\Argus-RU'
