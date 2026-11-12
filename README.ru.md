@@ -1,3 +1,9 @@
+> **Скачать русскую сборку этого форка:**
+> [Установщик .exe](https://github.com/guieDSM/argus-ru/releases/latest/download/Argus-RU-setup.exe) ·
+> [.exe без установки](https://github.com/guieDSM/argus-ru/releases/latest/download/Argus-RU.exe) ·
+> [Все релизы и контрольные суммы](https://github.com/guieDSM/argus-ru/releases).
+> [Установка и обновления](personal/WINDOWS-RELEASE.ru.md).
+
 <div align="center">
 
 <img src="resources/logo.svg" width="112" height="112" alt="Логотип Argus">
